@@ -4,8 +4,9 @@
 # Path to the Python script - adjust if needed
 SHAI_SCRIPT="${SHAI_SCRIPT:-$HOME/.local/bin/shai.py}"
 
-# Session capture configuration (opt-in)
+# Configuration (opt-in)
 SHAI_SESSION_ENABLED="${SHAI_SESSION_ENABLED:-0}"
+SHAI_ALIASES_ENABLED="${SHAI_ALIASES_ENABLED:-0}"
 SHAI_SESSION_DIR="${SHAI_SESSION_DIR:-$HOME/.shai_session}"
 SHAI_SESSION_SIZE="${SHAI_SESSION_SIZE:-50}"
 
@@ -108,11 +109,15 @@ shai() {
   local -a python_flags
   local -a query_parts
 
-  # Parse all arguments - separate debug flag, python flags, and query
+  # Parse all arguments - separate shai flags, python flags, and query
+  local include_aliases=$([[ "$SHAI_ALIASES_ENABLED" == "1" ]] && echo true || echo false)
   for arg in "$@"; do
     case "$arg" in
     --debug)
       debug=true
+      ;;
+    --aliases|-a)
+      include_aliases=true
       ;;
     -*)
       python_flags+=("$arg")
@@ -145,10 +150,13 @@ shai() {
   # Get recent shell history for context
   history_context=$(fc -l -n -10 2>/dev/null | tail -10)
 
-  # Get directory context (OS, cwd, listing)
+  # Get directory context (OS, cwd, aliases if requested, listing)
   local os_info="$(uname -s)"
-  local aliases_info="$(alias 2>/dev/null)"
-  dir_context="[os: $os_info] [cwd: $PWD]"$'\n'"Aliases:\n$aliases_info"$'\n\n'"Directory listing:\n$(ls -la 2>/dev/null | head -200)"
+  dir_context="[os: $os_info] [cwd: $PWD]"
+  if $include_aliases; then
+    dir_context+=$'\n'"Aliases:\n$(alias 2>/dev/null)"
+  fi
+  dir_context+=$'\n\n'"Directory listing:\n$(ls -la 2>/dev/null | head -200)"
 
   $debug && echo "[DEBUG] History context:"
   $debug && echo "$history_context"
