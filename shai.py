@@ -32,6 +32,7 @@ SYSTEM_PROMPT = """You are a shell command generator. Convert the user's natural
 
 Rules:
 - Use OS-appropriate commands (Darwin=macOS, Linux=Linux). For macOS, prefer BSD variants or GNU tools with 'g' prefix if needed (e.g., gdate, gsed)
+- Prefer user's aliases when applicable (e.g., if they have `alias ll='ls -la'`, use `ll` instead of `ls -la`)
 - Prefer simple, safe commands
 - If the request is ambiguous, make reasonable assumptions
 - For destructive operations, include safety flags where appropriate (e.g., -i for interactive)

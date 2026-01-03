@@ -17,7 +17,7 @@
 ### Features
 1. ~~**Current directory awareness** - pass `pwd` and `ls` output to the model for better context~~ ✅
 2. ~~**OS detection** - adjust commands for macOS vs Linux (e.g., `gdate` vs `date`)~~ ✅
-3. **Alias awareness** - read user's aliases and prefer them when applicable
+3. ~~**Alias awareness** - read user's aliases and prefer them when applicable~~ ✅
 4. **Git context** - detect if in a repo, current branch, dirty state, remote info
 5. **Project type detection** - recognize package.json, Cargo.toml, pyproject.toml and suggest appropriate tools
 6. **Environment variables** - optionally include relevant env vars (PATH tools, EDITOR, etc.)

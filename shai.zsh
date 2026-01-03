@@ -147,7 +147,8 @@ shai() {
 
   # Get directory context (OS, cwd, listing)
   local os_info="$(uname -s)"
-  dir_context="[os: $os_info] [cwd: $PWD]"$'\n'"$(ls -la 2>/dev/null | head -200)"
+  local aliases_info="$(alias 2>/dev/null)"
+  dir_context="[os: $os_info] [cwd: $PWD]"$'\n'"Aliases:\n$aliases_info"$'\n\n'"Directory listing:\n$(ls -la 2>/dev/null | head -200)"
 
   $debug && echo "[DEBUG] History context:"
   $debug && echo "$history_context"
