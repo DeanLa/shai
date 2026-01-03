@@ -4,35 +4,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AI-powered CLI tool that converts natural language to shell commands, with the generated command pre-loaded into the command line ready to execute.
+**ShAI** - AI-powered CLI tool that converts natural language to shell commands, with the generated command pre-loaded into the command line ready to execute.
 
 ## Architecture
 
-- `ai_cmd.py` - Python script using OpenAI API to generate shell commands. Uses uv inline script metadata for dependency management.
-- `ai.zsh` - Zsh shell integration providing:
-  - `ai` function: `ai "your query"` → shows command, pre-populates buffer via `print -z`
+- `shai.py` - Python script using OpenAI API to generate shell commands. Uses uv inline script metadata for dependency management.
+- `shai.zsh` - Zsh shell integration providing:
+  - `shai` function: `shai "your query"` → shows command, pre-populates buffer via `print -z`
   - `Ctrl+G` widget: type query directly, press Ctrl+G to transform into command
 
-## Local Checks - No istalled
+## Local Checks - Not installed
 ```bash
-export AI_CMD_SCRIPT="$PWD/ai_cmd.py" && source ./ai.zsh && ai
+export SHAI_SCRIPT="$PWD/shai.py" && source ./shai.zsh && shai
 ```
 ## Installation
 
 ```bash
 # Copy script to PATH
-cp ai_cmd.py ~/.local/bin/
-chmod +x ~/.local/bin/ai_cmd.py
+cp shai.py ~/.local/bin/
+chmod +x ~/.local/bin/shai.py
 
 # Add to .zshrc
-echo 'source /path/to/ai.zsh' >> ~/.zshrc
+echo 'source /path/to/shai.zsh' >> ~/.zshrc
 ```
 
 ## Usage
 
 ```bash
 # Method 1: Function (command pre-loaded, press Enter to run)
-ai "find large files over 100mb"
+shai "find large files over 100mb"
 
 # Method 2: Widget (type query, press Ctrl+G)
 find files modified today<Ctrl+G>

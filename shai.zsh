@@ -1,31 +1,31 @@
-# AI Command Generator - Zsh Integration
+# ShAI - Shell AI Command Generator - Zsh Integration
 # Add this to your .zshrc or source this file
 
 # Path to the Python script - adjust if needed
-AI_CMD_SCRIPT="${AI_CMD_SCRIPT:-$HOME/.local/bin/ai_cmd.py}"
+SHAI_SCRIPT="${SHAI_SCRIPT:-$HOME/.local/bin/shai.py}"
 
 # Session capture configuration (opt-in)
-AI_CMD_SESSION_ENABLED="${AI_CMD_SESSION_ENABLED:-0}"
-AI_CMD_SESSION_DIR="${AI_CMD_SESSION_DIR:-$HOME/.ai_cmd_session}"
-AI_CMD_SESSION_SIZE="${AI_CMD_SESSION_SIZE:-50}"
+SHAI_SESSION_ENABLED="${SHAI_SESSION_ENABLED:-0}"
+SHAI_SESSION_DIR="${SHAI_SESSION_DIR:-$HOME/.shai_session}"
+SHAI_SESSION_SIZE="${SHAI_SESSION_SIZE:-50}"
 
 # Session file for this shell instance (PID-based)
-_AI_CMD_SESSION_FILE="${AI_CMD_SESSION_DIR}/$$"
+_SHAI_SESSION_FILE="${SHAI_SESSION_DIR}/$$"
 
 # Variables to hold command info between preexec and precmd
-_ai_cmd_last_cmd=""
-_ai_cmd_last_timestamp=""
-_ai_cmd_last_cwd=""
+_shai_last_cmd=""
+_shai_last_timestamp=""
+_shai_last_cwd=""
 
 # Create session directory if needed
-_ai_cmd_init_session() {
-  [[ "$AI_CMD_SESSION_ENABLED" != "1" ]] && return
-  mkdir -p "$AI_CMD_SESSION_DIR"
+_shai_init_session() {
+  [[ "$SHAI_SESSION_ENABLED" != "1" ]] && return
+  mkdir -p "$SHAI_SESSION_DIR"
 }
 
 # Trim session file to keep only last N entries
-_ai_cmd_trim_session() {
-  [[ ! -f "$_AI_CMD_SESSION_FILE" ]] && return
+_shai_trim_session() {
+  [[ ! -f "$_SHAI_SESSION_FILE" ]] && return
 
   local temp_file=$(mktemp)
   local count=0
@@ -41,69 +41,69 @@ _ai_cmd_trim_session() {
     else
       current_entry+="$line"$'\n'
     fi
-  done <"$_AI_CMD_SESSION_FILE"
+  done <"$_SHAI_SESSION_FILE"
 
   # Keep only last N entries
   local total=${#entries[@]}
-  local start=$((total - AI_CMD_SESSION_SIZE))
+  local start=$((total - SHAI_SESSION_SIZE))
   [[ $start -lt 0 ]] && start=0
 
-  : >"$_AI_CMD_SESSION_FILE"
+  : >"$_SHAI_SESSION_FILE"
   for (( i = start; i < total; i++ )); do
-    printf '%s\n' "${entries[$i]}" >>"$_AI_CMD_SESSION_FILE"
+    printf '%s\n' "${entries[$i]}" >>"$_SHAI_SESSION_FILE"
   done
 }
 
 # preexec hook - called before command execution
-_ai_cmd_preexec() {
-  [[ "$AI_CMD_SESSION_ENABLED" != "1" ]] && return
+_shai_preexec() {
+  [[ "$SHAI_SESSION_ENABLED" != "1" ]] && return
 
-  _ai_cmd_last_cmd="$1"
-  _ai_cmd_last_timestamp=$(date -Iseconds)
-  _ai_cmd_last_cwd="$PWD"
+  _shai_last_cmd="$1"
+  _shai_last_timestamp=$(date -Iseconds)
+  _shai_last_cwd="$PWD"
 }
 
 # precmd hook - called after command execution
-_ai_cmd_precmd() {
+_shai_precmd() {
   local exit_code=$?
 
-  [[ "$AI_CMD_SESSION_ENABLED" != "1" ]] && return
-  [[ -z "$_ai_cmd_last_cmd" ]] && return
+  [[ "$SHAI_SESSION_ENABLED" != "1" ]] && return
+  [[ -z "$_shai_last_cmd" ]] && return
 
   # Append entry to session file
   {
-    echo "[${_ai_cmd_last_timestamp}] [exit:${exit_code}] [cwd:${_ai_cmd_last_cwd}]"
-    echo "$ ${_ai_cmd_last_cmd}"
+    echo "[${_shai_last_timestamp}] [exit:${exit_code}] [cwd:${_shai_last_cwd}]"
+    echo "$ ${_shai_last_cmd}"
     echo "---"
-  } >>"$_AI_CMD_SESSION_FILE"
+  } >>"$_SHAI_SESSION_FILE"
 
   # Clear for next command
-  _ai_cmd_last_cmd=""
+  _shai_last_cmd=""
 
   # Trim if needed (every 10 commands to avoid overhead)
-  if [[ -f "$_AI_CMD_SESSION_FILE" ]]; then
-    local line_count=$(wc -l <"$_AI_CMD_SESSION_FILE")
-    if ((line_count > AI_CMD_SESSION_SIZE * 4)); then
-      _ai_cmd_trim_session
+  if [[ -f "$_SHAI_SESSION_FILE" ]]; then
+    local line_count=$(wc -l <"$_SHAI_SESSION_FILE")
+    if ((line_count > SHAI_SESSION_SIZE * 4)); then
+      _shai_trim_session
     fi
   fi
 }
 
 # Cleanup on shell exit
-_ai_cmd_zshexit() {
-  [[ "$AI_CMD_SESSION_ENABLED" != "1" ]] && return
-  rm -f "$_AI_CMD_SESSION_FILE"
+_shai_zshexit() {
+  [[ "$SHAI_SESSION_ENABLED" != "1" ]] && return
+  rm -f "$_SHAI_SESSION_FILE"
 }
 
 # Register hooks
-_ai_cmd_init_session
+_shai_init_session
 autoload -Uz add-zsh-hook
-add-zsh-hook preexec _ai_cmd_preexec
-add-zsh-hook precmd _ai_cmd_precmd
-add-zsh-hook zshexit _ai_cmd_zshexit
+add-zsh-hook preexec _shai_preexec
+add-zsh-hook precmd _shai_precmd
+add-zsh-hook zshexit _shai_zshexit
 
 # Function that generates command and pre-populates the buffer
-ai() {
+shai() {
   local debug=false
   local -a python_flags
   local -a query_parts
@@ -127,12 +127,12 @@ ai() {
 
   # Pass --help directly to Python without capturing
   if [[ " ${python_flags[*]} " == *" --help "* ]] || [[ " ${python_flags[*]} " == *" -h "* ]]; then
-    "$AI_CMD_SCRIPT" "${python_flags[@]}"
+    "$SHAI_SCRIPT" "${python_flags[@]}"
     return 0
   fi
 
   if [[ -z "$query" ]]; then
-    echo "Usage: ai [--debug] [flags...] <natural language query>"
+    echo "Usage: shai [--debug] [flags...] <natural language query>"
     return 1
   fi
 
@@ -151,16 +151,16 @@ ai() {
 
   # Add session file if session capture is enabled
   local session_args=()
-  if [[ "$AI_CMD_SESSION_ENABLED" == "1" ]] && [[ -f "$_AI_CMD_SESSION_FILE" ]]; then
-    session_args+=(--session-file "$_AI_CMD_SESSION_FILE")
-    $debug && echo "[DEBUG] Session file: $_AI_CMD_SESSION_FILE"
+  if [[ "$SHAI_SESSION_ENABLED" == "1" ]] && [[ -f "$_SHAI_SESSION_FILE" ]]; then
+    session_args+=(--session-file "$_SHAI_SESSION_FILE")
+    $debug && echo "[DEBUG] Session file: $_SHAI_SESSION_FILE"
   fi
 
-  $debug && echo "[DEBUG] Calling: $AI_CMD_SCRIPT ${session_args[*]} ${python_flags[*]} $query"
+  $debug && echo "[DEBUG] Calling: $SHAI_SCRIPT ${session_args[*]} ${python_flags[*]} $query"
 
   # Call the script - stderr shows warnings, stdout captured as command
   local stderr_file=$(mktemp)
-  cmd=$(echo "$history_context" | "$AI_CMD_SCRIPT" "${session_args[@]}" "${python_flags[@]}" "$query" 2>"$stderr_file")
+  cmd=$(echo "$history_context" | "$SHAI_SCRIPT" "${session_args[@]}" "${python_flags[@]}" "$query" 2>"$stderr_file")
   local exit_code=$?
   local stderr_output=$(<"$stderr_file")
   rm -f "$stderr_file"
@@ -195,7 +195,7 @@ ai() {
 
 # Alternative: Zle widget version (bind to a key)
 # This version lets you type the query inline and press a key combo
-_ai_generate_widget() {
+_shai_generate_widget() {
   local query="$BUFFER"
 
   if [[ -z "$query" ]]; then
@@ -207,7 +207,7 @@ _ai_generate_widget() {
   zle -M "Generating command..."
 
   local cmd
-  cmd=$("$AI_CMD_SCRIPT" "$query" 2>&1)
+  cmd=$("$SHAI_SCRIPT" "$query" 2>&1)
 
   if [[ $? -eq 0 ]]; then
     BUFFER="$cmd"
@@ -220,11 +220,8 @@ _ai_generate_widget() {
   fi
 }
 
-zle -N _ai_generate_widget
+zle -N _shai_generate_widget
 
 # Bind Ctrl+G to generate (G for Generate)
 # Type your query, press Ctrl+G, and it transforms into a command
-bindkey '^G' _ai_generate_widget
-
-#mkdir dean
-#ai "remove that folder"
+bindkey '^G' _shai_generate_widget
