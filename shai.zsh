@@ -1,8 +1,8 @@
 # ShAI - Shell AI Command Generator - Zsh Integration
-# Add this to your .zshrc or source this file
+# Add to your .zshrc: source ~/.local/bin/shai.zsh
 
-# Path to the Python script - adjust if needed
-SHAI_SCRIPT="${SHAI_SCRIPT:-$HOME/.local/bin/shai.py}"
+# Path to the Python script - same directory as this file
+SHAI_SCRIPT="${SHAI_SCRIPT:-${0:A:h}/shai.py}"
 
 # Configuration (opt-in)
 SHAI_SESSION_ENABLED="${SHAI_SESSION_ENABLED:-0}"
@@ -17,6 +17,11 @@ _SHAI_SESSION_FILE="${SHAI_SESSION_DIR}/$$"
 _shai_last_cmd=""
 _shai_last_timestamp=""
 _shai_last_cwd=""
+
+# Feedback tracking - stores last generated command info
+_shai_last_query=""
+_shai_last_generated=""
+SHAI_FEEDBACK_FILE="${SHAI_FEEDBACK_FILE:-$HOME/.shai_feedback.jsonl}"
 
 # Create session directory if needed
 _shai_init_session() {
@@ -57,6 +62,26 @@ _shai_trim_session() {
 
 # preexec hook - called before command execution
 _shai_preexec() {
+  # Feedback tracking - log if user ran a shai-generated command
+  if [[ -n "$_shai_last_generated" ]]; then
+    local executed="$1"
+    local matched="false"
+    # Check if executed command matches generated (with or without # prefix)
+    if [[ "$executed" == "$_shai_last_generated" ]] || [[ "$executed" == "# $_shai_last_generated" ]]; then
+      matched="true"
+    fi
+    # Log feedback as JSON
+    printf '{"ts":"%s","query":"%s","generated":"%s","executed":"%s","matched":%s}\n' \
+      "$(date -Iseconds)" \
+      "${_shai_last_query//\"/\\\"}" \
+      "${_shai_last_generated//\"/\\\"}" \
+      "${executed//\"/\\\"}" \
+      "$matched" >> "$SHAI_FEEDBACK_FILE"
+    # Clear after logging
+    _shai_last_query=""
+    _shai_last_generated=""
+  fi
+
   [[ "$SHAI_SESSION_ENABLED" != "1" ]] && return
 
   _shai_last_cmd="$1"
@@ -192,6 +217,10 @@ shai() {
   if [[ $exit_code -eq 1 ]]; then
     return 1
   fi
+
+  # Store for feedback tracking
+  _shai_last_query="$query"
+  _shai_last_generated="$cmd"
 
   if [[ $exit_code -eq 2 ]]; then
     # Destructive command - load as comment, user must delete # to run
