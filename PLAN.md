@@ -39,6 +39,6 @@
 3. **Clipboard mode** (`--copy`) - copy to clipboard instead of buffer
 
 ## 5. History & Learning
-1. **Feedback loop** - track which commands user actually ran, use for fine-tuning prompts
+1. ~~**Feedback loop** - track which commands user actually ran, use for fine-tuning prompts~~ ✅
 2. **Favorites** - save frequently used query→command mappings locally
 3. **Session memory** - remember context beyond just shell history
