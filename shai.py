@@ -36,6 +36,7 @@ Rules:
 - If the request is ambiguous, make reasonable assumptions
 - For destructive operations, include safety flags where appropriate (e.g., -i for interactive)
 - Use the recent command history for context when the user refers to previous commands or actions
+- Reference actual files and folders from the current directory listing when relevant
 """
 
 
@@ -107,8 +108,10 @@ def read_session_file(path: str, limit: int = 10) -> str:
     except Exception:
         return ""
 
-def build_context_messages(history: str, session_context: str) -> list[dict]:
+def build_context_messages(history: str, session_context: str, dir_context: str) -> list[dict]:
     context_parts = []
+    if dir_context.strip():
+        context_parts.append(f"Current directory:\n{dir_context}")
     if session_context.strip():
         context_parts.append(f"Recent commands with exit codes:\n{session_context}")
     if history.strip():
@@ -125,10 +128,10 @@ def build_context_messages(history: str, session_context: str) -> list[dict]:
 
 # === API ===
 
-def call_openai(query: str, history: str = "", session_context: str = "") -> CommandResponse:
+def call_openai(query: str, history: str = "", session_context: str = "", dir_context: str = "") -> CommandResponse:
     client = OpenAI()
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    messages.extend(build_context_messages(history, session_context))
+    messages.extend(build_context_messages(history, session_context, dir_context))
     messages.append({"role": "user", "content": query})
 
     response = client.beta.chat.completions.parse(
@@ -151,6 +154,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Convert natural language to shell commands")
     parser.add_argument("-q", "--quiet", action="store_true", help="Hide explanation of what the command does")
     parser.add_argument("--session-file", help="Path to session file with recent command history and exit codes")
+    parser.add_argument("--dir-context", help="Current directory info (pwd + ls output)")
     parser.add_argument("query", nargs="+", help="Natural language description of the command you want")
     return parser.parse_args()
 
@@ -167,9 +171,10 @@ def main():
     query = " ".join(args.query)
     history = read_stdin_history()
     session_context = read_session_file(args.session_file)
+    dir_context = args.dir_context or ""
 
     try:
-        result = call_openai(query, history, session_context)
+        result = call_openai(query, history, session_context, dir_context)
         if not args.quiet:
             print_explanation(result)
         print_danger_warning(result)

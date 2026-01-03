@@ -145,8 +145,14 @@ shai() {
   # Get recent shell history for context
   history_context=$(fc -l -n -10 2>/dev/null | tail -10)
 
+  # Get directory context (cwd + listing)
+  dir_context="[cwd: $PWD]"$'\n'"$(ls -la 2>/dev/null | head -200)"
+
   $debug && echo "[DEBUG] History context:"
   $debug && echo "$history_context"
+  $debug && echo "[DEBUG] ---"
+  $debug && echo "[DEBUG] Dir context:"
+  $debug && echo "$dir_context"
   $debug && echo "[DEBUG] ---"
 
   # Add session file if session capture is enabled
@@ -160,7 +166,7 @@ shai() {
 
   # Call the script - stderr shows warnings, stdout captured as command
   local stderr_file=$(mktemp)
-  cmd=$(echo "$history_context" | "$SHAI_SCRIPT" "${session_args[@]}" "${python_flags[@]}" "$query" 2>"$stderr_file")
+  cmd=$(echo "$history_context" | "$SHAI_SCRIPT" "${session_args[@]}" --dir-context "$dir_context" "${python_flags[@]}" "$query" 2>"$stderr_file")
   local exit_code=$?
   local stderr_output=$(<"$stderr_file")
   rm -f "$stderr_file"
