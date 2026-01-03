@@ -184,12 +184,9 @@ shai() {
   fi
 
   if [[ $exit_code -eq 2 ]]; then
-    # Destructive command - show it but don't load into buffer
-    echo "" >&2
-    echo "⛔ DANGEROUS - not auto-pasted. Copy manually:" >&2
-    echo "" >&2
-    echo "  $cmd" >&2
-    echo "" >&2
+    # Destructive command - load as comment, user must delete # to run
+    echo "⚠️  Remove the # to run" >&2
+    print -z "# $cmd"
     return 0
   fi
 
