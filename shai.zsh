@@ -145,8 +145,9 @@ shai() {
   # Get recent shell history for context
   history_context=$(fc -l -n -10 2>/dev/null | tail -10)
 
-  # Get directory context (cwd + listing)
-  dir_context="[cwd: $PWD]"$'\n'"$(ls -la 2>/dev/null | head -200)"
+  # Get directory context (OS, cwd, listing)
+  local os_info="$(uname -s)"
+  dir_context="[os: $os_info] [cwd: $PWD]"$'\n'"$(ls -la 2>/dev/null | head -200)"
 
   $debug && echo "[DEBUG] History context:"
   $debug && echo "$history_context"
