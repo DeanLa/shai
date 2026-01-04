@@ -45,7 +45,7 @@ install_files() {
 
 configure_shell() {
     local zshrc="$HOME/.zshrc"
-    local source_line="source \"$INSTALL_DIR/shai.zsh\""
+    local source_line="[[ -f \"$INSTALL_DIR/shai.zsh\" ]] && source \"$INSTALL_DIR/shai.zsh\""
 
     if grep -q "shai.zsh" "$zshrc" 2>/dev/null; then
         info "Already in .zshrc"
