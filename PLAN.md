@@ -29,9 +29,19 @@
 12. **Failed command retry** - detect non-zero exit, suggest fix automatically
 
 ## 3. Configuration
-1. **Config file** (`~/.ai_cmd.yaml`) - default model, temperature, custom system prompt
-2. **Model flag** (`--model gpt-4o`) - switch models on the fly
-3. **Custom prompts** - domain-specific modes like `--git`, `--docker`, `--k8s`
+1. **Config file** (`~/.config/shai/config.toml`) - persistent settings, second to env vars
+2. **CLI config commands**:
+   - `shai set provider anthropic` - set provider
+   - `shai set session on` - enable session memory
+   - `shai config` - show current config
+3. **Model flag** (`--model gpt-4o`) - switch models on the fly
+4. **Custom prompts** - domain-specific modes like `--git`, `--docker`, `--k8s`
+
+### Priority order
+1. CLI flags (highest)
+2. Environment variables
+3. Config file
+4. Defaults (lowest)
 
 ## 4. Output Options
 1. **Multiple suggestions** (`-n 3`) - show 3 alternatives to choose from
