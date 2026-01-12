@@ -55,3 +55,33 @@ find files modified today<Ctrl+G>
 - Use `test_rich.py` or similar scratch files to experiment with formatting before integrating
 - Organize code into sections with comment headers: `# === Constants ===`, `# === Models ===`, `# === Output ===`, `# === Context ===`, `# === API ===`, `# === CLI ===`, `# === Main ===`
 - Extract exit codes as constants (e.g., `EXIT_SUCCESS`, `EXIT_ERROR`, `EXIT_DESTRUCTIVE`)
+
+## Documentation Preferences
+
+### README Style - "Stacked Excitement"
+Structure README to hook readers progressively:
+1. **Lead with the magic** - Show the core UX immediately (`shai "..."` → command in buffer → press Enter)
+2. **Then reveal depth** - Flags, options, customization
+3. **Then advanced features** - Memory, context, integrations with thorough env var documentation
+
+### README Rules
+- Don't front-load complexity or bury exciting UX under setup instructions
+- Never remove manually added images, videos, or GIFs
+- Keep "coming soon" notes for planned features until implemented
+- Installation should come AFTER showing what the tool does
+
+### Planned Features (keep in README as "coming soon")
+- Multi-provider support (Anthropic, Gemini, local models) - currently OpenAI only
+- Full multi-shell support (bash, fish) - currently zsh only
+
+## Configuration Design
+
+### Priority Order
+1. CLI flags (highest)
+2. Environment variables
+3. Config file (`~/.config/shai/config.toml`)
+4. Defaults (lowest)
+
+### CLI Config Commands (planned)
+- `shai set <option> <value>` - set config values
+- `shai config` - show current config

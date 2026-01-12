@@ -130,19 +130,39 @@ add-zsh-hook zshexit _shai_zshexit
 
 # Function that generates command and pre-populates the buffer
 shai() {
+  # Handle subcommands that bypass the query flow
+  if [[ "$1" == "config" ]]; then
+    "$SHAI_SCRIPT" "$@"
+    return $?
+  fi
+  if [[ "$1" == "set" ]]; then
+    "$SHAI_SCRIPT" "$@"
+    return $?
+  fi
+
   local debug=false
   local -a python_flags
   local -a query_parts
 
   # Parse all arguments - separate shai flags, python flags, and query
   local include_aliases=$([[ "$SHAI_ALIASES_ENABLED" == "1" ]] && echo true || echo false)
+  local expect_value=false
   for arg in "$@"; do
+    if $expect_value; then
+      python_flags+=("$arg")
+      expect_value=false
+      continue
+    fi
     case "$arg" in
     --debug)
       debug=true
       ;;
     --aliases|-a)
       include_aliases=true
+      ;;
+    --model)
+      python_flags+=("$arg")
+      expect_value=true
       ;;
     -*)
       python_flags+=("$arg")
@@ -163,6 +183,8 @@ shai() {
 
   if [[ -z "$query" ]]; then
     echo "Usage: shai [--debug] [flags...] <natural language query>"
+    echo "       shai config [--sources]    Show configuration"
+    echo "       shai set <key> <value>     Set configuration value"
     return 1
   fi
 
