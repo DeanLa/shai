@@ -28,20 +28,11 @@
 11. **Command output context** - "do that again but with verbose" knows what "that" outputted
 12. **Failed command retry** - detect non-zero exit, suggest fix automatically
 
-## 3. Configuration
-1. **Config file** (`~/.config/shai/config.toml`) - persistent settings, second to env vars
-2. **CLI config commands**:
-   - `shai set provider anthropic` - set provider
-   - `shai set session on` - enable session memory
-   - `shai config` - show current config
-3. **Model flag** (`--model gpt-4o`) - switch models on the fly
-4. **Custom prompts** - domain-specific modes like `--git`, `--docker`, `--k8s`
-
-### Priority order
-1. CLI flags (highest)
-2. Environment variables
-3. Config file
-4. Defaults (lowest)
+## 3. Configuration ✅
+1. ~~**Config file** (`~/.config/shai/config.toml`) - persistent settings, second to env vars~~ ✅
+2. ~~**CLI config commands** (`shai config`, `shai set <key> <value>`)~~ ✅
+3. ~~**Model flag** (`--model gpt-4o`) - switch models on the fly~~ ✅
+4. ~~**Priority order**: CLI flags > env vars > config file > defaults~~ ✅
 
 ## 4. Output Options
 1. **Multiple suggestions** (`-n 3`) - show 3 alternatives to choose from

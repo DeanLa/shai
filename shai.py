@@ -36,10 +36,9 @@ CONFIG_DIR = Path.home() / ".config" / "shai"
 CONFIG_FILE = CONFIG_DIR / "config.toml"
 DEFAULT_MODEL = "gpt-5.1-2025-11-13"
 DEFAULT_QUIET = False
-DEFAULT_MODE = ""
 
 # Valid config keys for `shai set`
-VALID_CONFIG_KEYS = {"model", "quiet", "mode", "session.enabled", "session.dir", "session.size", "aliases.enabled", "feedback.file"}
+VALID_CONFIG_KEYS = {"model", "quiet", "session.enabled", "session.dir", "session.size", "aliases.enabled", "feedback.file"}
 
 SYSTEM_PROMPT = """You are a shell command generator. Convert the user's natural language request into a single shell command.
 
@@ -76,7 +75,6 @@ _syntax = Syntax("", "bash", background_color="default")
 
 def print_code(code: str, pad: int = 4):
     highlighted = _syntax.highlight(code)
-    highlighted.stylize(f"on {COLOR_CODE_BG}")
     err.print(Padding(highlighted, (0, 0, 0, pad)))
 
 def print_info(msg: str):
@@ -93,8 +91,7 @@ def print_explanation(result: CommandResponse):
     if result.steps:
         err.print()
         for i, step in enumerate(result.steps, 1):
-            err.print(f"{i}.")
-            print_code(f"{step.command}\n# {step.explanation}")
+            print_code(f"{i}. {step.command}\n   # {step.explanation}")
 
 def print_danger_warning(result: CommandResponse):
     if result.is_destructive:
@@ -163,6 +160,19 @@ def set_nested(config: dict, key: str, value):
             target[part] = {}
         target = target[part]
     target[parts[-1]] = value
+
+def unset_nested(config: dict, key: str) -> bool:
+    """Remove a potentially nested config value. Returns True if key existed."""
+    parts = key.split(".")
+    target = config
+    for part in parts[:-1]:
+        if part not in target:
+            return False
+        target = target[part]
+    if parts[-1] in target:
+        del target[parts[-1]]
+        return True
+    return False
 
 def resolve_config_value(key: str, cli_value, env_var: str | None, config: dict, default):
     """Resolve config value with priority: CLI > env > config file > default."""
@@ -238,27 +248,19 @@ def require_api_key():
         sys.exit(EXIT_ERROR)
 
 def parse_args():
-    # Handle subcommand help before argparse consumes -h/--help
-    if len(sys.argv) >= 2:
-        if sys.argv[1] == "config" and ("--help" in sys.argv or "-h" in sys.argv):
-            print_config_help()
-            sys.exit(EXIT_SUCCESS)
-        if sys.argv[1] == "set" and ("--help" in sys.argv or "-h" in sys.argv):
-            print_set_help()
-            sys.exit(EXIT_SUCCESS)
-
-    parser = argparse.ArgumentParser(description="AI-powered shell command generator", formatter_class=argparse.RawDescriptionHelpFormatter)
-
-    # Global flags for query mode
+    parser = argparse.ArgumentParser(
+        description="AI-powered shell command generator",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+commands:
+  config              Show current configuration (--sources for details)
+  set <key> <value>   Set a configuration value
+  unset <key>         Remove a configuration value
+"""
+    )
     parser.add_argument("-q", "--quiet", action="store_true", help="Hide explanation of what the command does")
     parser.add_argument("--model", help="Model to use for generation")
-    parser.add_argument("--git", action="store_true", help="Git-focused mode")
-    parser.add_argument("--docker", action="store_true", help="Docker-focused mode")
-    parser.add_argument("--k8s", action="store_true", help="Kubernetes-focused mode")
-    parser.add_argument("--session-file", help="Path to session file with recent command history and exit codes")
-    parser.add_argument("--dir-context", help="Current directory info (pwd + ls output)")
 
-    # Handle subcommands manually to allow default query behavior
     args, remaining = parser.parse_known_args()
 
     # Check for subcommands
@@ -275,40 +277,19 @@ def parse_args():
             print_error("Usage: shai set <key> <value>")
             sys.exit(EXIT_ERROR)
         args.query = []
+    elif remaining and remaining[0] == "unset":
+        args.command = "unset"
+        if len(remaining) >= 2:
+            args.key = remaining[1]
+        else:
+            print_error("Usage: shai unset <key>")
+            sys.exit(EXIT_ERROR)
+        args.query = []
     else:
-        # Default: query mode
         args.command = None
         args.query = remaining
 
     return args
-
-def print_config_help():
-    """Print help for 'shai config' subcommand."""
-    err.print("[bold]shai config[/bold] - Display current configuration\n")
-    err.print("[bold]Usage:[/bold]")
-    err.print("  shai config [--sources]\n")
-    err.print("[bold]Options:[/bold]")
-    err.print("  --sources    Show where each value comes from (cli/env/config/default)\n")
-    err.print("[bold]Examples:[/bold]")
-    err.print("  shai config              Show all settings")
-    err.print("  shai config --sources    Show settings with their source\n")
-    err.print(f"[dim]Config file location: {CONFIG_FILE}[/dim]")
-
-def print_set_help():
-    """Print help for 'shai set' subcommand."""
-    err.print("[bold]shai set[/bold] - Set a configuration value\n")
-    err.print("[bold]Usage:[/bold]")
-    err.print("  shai set <key> <value>\n")
-    err.print("[bold]Valid keys:[/bold]")
-    for key in sorted(VALID_CONFIG_KEYS):
-        err.print(f"  {key}")
-    err.print()
-    err.print("[bold]Examples:[/bold]")
-    err.print("  shai set model gpt-4o-mini")
-    err.print("  shai set quiet true")
-    err.print("  shai set mode git")
-    err.print("  shai set session.enabled true\n")
-    err.print(f"[dim]Config file location: {CONFIG_FILE}[/dim]")
 
 def get_exit_code(result: CommandResponse) -> int:
     return EXIT_DESTRUCTIVE if result.is_destructive else EXIT_SUCCESS
@@ -325,7 +306,6 @@ def cmd_config(args):
     settings = [
         ("model", "SHAI_MODEL", DEFAULT_MODEL),
         ("quiet", "SHAI_QUIET", DEFAULT_QUIET),
-        ("mode", "SHAI_MODE", DEFAULT_MODE),
         ("session.enabled", "SHAI_SESSION_ENABLED", False),
         ("session.dir", "SHAI_SESSION_DIR", "~/.shai_session"),
         ("session.size", "SHAI_SESSION_SIZE", 50),
@@ -370,18 +350,24 @@ def cmd_set(args):
     save_config(config)
     print_info(f"Set {key} = {value}")
 
+def cmd_unset(args):
+    """Handle 'shai unset <key>' command."""
+    key = args.key
+
+    if key not in VALID_CONFIG_KEYS:
+        print_error(f"Unknown config key: {key}")
+        print_info(f"Valid keys: {', '.join(sorted(VALID_CONFIG_KEYS))}")
+        sys.exit(EXIT_ERROR)
+
+    config = load_config()
+    if unset_nested(config, key):
+        save_config(config)
+        print_info(f"Unset {key}")
+    else:
+        print_warning(f"{key} was not set")
+
 
 # === Main ===
-
-def get_mode_prompt(args) -> str:
-    """Get additional system prompt based on mode flags."""
-    if args.git:
-        return "\n\nFocus on git commands. The user is working with version control."
-    elif args.docker:
-        return "\n\nFocus on Docker commands. The user is working with containers."
-    elif args.k8s:
-        return "\n\nFocus on Kubernetes (kubectl) commands. The user is working with K8s clusters."
-    return ""
 
 def main():
     args = parse_args()
@@ -392,6 +378,9 @@ def main():
         sys.exit(EXIT_SUCCESS)
     elif args.command == "set":
         cmd_set(args)
+        sys.exit(EXIT_SUCCESS)
+    elif args.command == "unset":
+        cmd_unset(args)
         sys.exit(EXIT_SUCCESS)
 
     # For query command, need API key
@@ -407,24 +396,16 @@ def main():
     model, _ = resolve_config_value("model", args.model, "SHAI_MODEL", config, DEFAULT_MODEL)
     quiet, _ = resolve_config_value("quiet", args.quiet if args.quiet else None, "SHAI_QUIET", config, DEFAULT_QUIET)
 
-    # Get mode from config if not specified via flags
-    mode_prompt = get_mode_prompt(args)
-    if not mode_prompt:
-        config_mode, _ = resolve_config_value("mode", None, "SHAI_MODE", config, DEFAULT_MODE)
-        if config_mode == "git":
-            mode_prompt = "\n\nFocus on git commands. The user is working with version control."
-        elif config_mode == "docker":
-            mode_prompt = "\n\nFocus on Docker commands. The user is working with containers."
-        elif config_mode == "k8s":
-            mode_prompt = "\n\nFocus on Kubernetes (kubectl) commands. The user is working with K8s clusters."
-
     query = " ".join(args.query)
     history = read_stdin_history()
-    session_context = read_session_file(args.session_file)
-    dir_context = args.dir_context or ""
+    session_enabled, _ = resolve_config_value("session.enabled", None, "SHAI_SESSION_ENABLED", config, False)
+    session_dir, _ = resolve_config_value("session.dir", None, "SHAI_SESSION_DIR", config, "~/.shai_session")
+    session_file = os.path.expanduser(session_dir) + "/session" if session_enabled else None
+    session_context = read_session_file(session_file)
+    dir_context = ""
 
     try:
-        result = call_openai(query, history, session_context, dir_context, model=model, extra_prompt=mode_prompt)
+        result = call_openai(query, history, session_context, dir_context, model=model)
         if not quiet:
             print_explanation(result)
         print_danger_warning(result)

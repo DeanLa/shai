@@ -1,8 +1,8 @@
 # ShAI - Shell AI Command Generator - Zsh Integration
 # Add to your .zshrc: source ~/.local/bin/shai.zsh
 
-# Path to the Python script - same directory as this file
-SHAI_SCRIPT="${SHAI_SCRIPT:-${0:A:h}/shai.py}"
+# Path to the Python script - defaults to PWD for development, override with SHAI_SCRIPT
+SHAI_SCRIPT="${SHAI_SCRIPT:-$PWD/shai.py}"
 
 # Configuration (opt-in)
 SHAI_SESSION_ENABLED="${SHAI_SESSION_ENABLED:-0}"
@@ -131,11 +131,7 @@ add-zsh-hook zshexit _shai_zshexit
 # Function that generates command and pre-populates the buffer
 shai() {
   # Handle subcommands that bypass the query flow
-  if [[ "$1" == "config" ]]; then
-    "$SHAI_SCRIPT" "$@"
-    return $?
-  fi
-  if [[ "$1" == "set" ]]; then
+  if [[ "$1" == "config" || "$1" == "set" || "$1" == "unset" ]]; then
     "$SHAI_SCRIPT" "$@"
     return $?
   fi
